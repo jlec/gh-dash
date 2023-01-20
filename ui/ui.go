@@ -37,6 +37,7 @@ type Model struct {
 	issueSidebar  issuesidebar.Model
 	currSectionId int
 	help          help.Model
+	repos         []section.Section
 	prs           []section.Section
 	issues        []section.Section
 	ready         bool
@@ -476,15 +477,30 @@ func (m *Model) fetchAllViewSections() ([]section.Section, tea.Cmd) {
 }
 
 func (m *Model) getCurrentViewSections() []section.Section {
-	if m.ctx.View == config.PRsView {
+	switch m.ctx.View {
+	case config.ReposView:
+		return m.repos
+	case config.PRsView:
 		return m.prs
-	} else {
+	default:
 		return m.issues
 	}
 }
 
 func (m *Model) setCurrentViewSections(newSections []section.Section) {
-	if m.ctx.View == config.PRsView {
+	switch m.ctx.View {
+	case config.ReposView:
+		search := repossection.NewModel(
+			0,
+			&m.ctx,
+			config.ReposSectionConfig{
+				Title:   "",
+				Filters: "archived:false",
+			},
+			time.Now(),
+		)
+		m.prs = append([]section.Section{&search}, newSections...)
+	case config.PRsView:
 		search := prssection.NewModel(
 			0,
 			&m.ctx,
@@ -495,7 +511,7 @@ func (m *Model) setCurrentViewSections(newSections []section.Section) {
 			time.Now(),
 		)
 		m.prs = append([]section.Section{&search}, newSections...)
-	} else {
+	default:
 		search := issuessection.NewModel(
 			0,
 			&m.ctx,

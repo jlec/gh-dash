@@ -24,6 +24,7 @@ var validate *validator.Validate
 type ViewType string
 
 const (
+	ReposView  ViewType = "repos"
 	PRsView    ViewType = "prs"
 	IssuesView ViewType = "issues"
 )
@@ -32,6 +33,13 @@ type SectionConfig struct {
 	Title   string
 	Filters string
 	Limit   *int `yaml:"limit,omitempty"`
+}
+
+type ReposSectionConfig struct {
+	Title   string
+	Filters string
+	Limit   *int              `yaml:"limit,omitempty"`
+	Layout  ReposLayoutConfig `yaml:"layout,omitempty"`
 }
 
 type PrsSectionConfig struct {
@@ -58,6 +66,11 @@ type ColumnConfig struct {
 	Hidden *bool `yaml:"hidden,omitempty"`
 }
 
+type ReposLayoutConfig struct {
+	Owner ColumnConfig `yaml:"owner,omitempty"`
+	Name  ColumnConfig `yaml:"name,omitempty"`
+}
+
 type PrsLayoutConfig struct {
 	UpdatedAt    ColumnConfig `yaml:"updatedAt,omitempty"`
 	Repo         ColumnConfig `yaml:"repo,omitempty"`
@@ -82,12 +95,14 @@ type IssuesLayoutConfig struct {
 }
 
 type LayoutConfig struct {
+	Repos  ReposLayoutConfig  `yaml:"prs,omitempty"`
 	Prs    PrsLayoutConfig    `yaml:"prs,omitempty"`
 	Issues IssuesLayoutConfig `yaml:"issues,omitempty"`
 }
 
 type Defaults struct {
 	Preview                PreviewConfig `yaml:"preview"`
+	ReposLimit             int           `yaml:"prsLimit"`
 	PrsLimit               int           `yaml:"prsLimit"`
 	IssuesLimit            int           `yaml:"issuesLimit"`
 	View                   ViewType      `yaml:"view"`
@@ -144,6 +159,7 @@ type ThemeConfig struct {
 }
 
 type Config struct {
+	ReposSections  []ReposSectionConfig  `yaml:"repoSections"`
 	PRSections     []PrsSectionConfig    `yaml:"prSections"`
 	IssuesSections []IssuesSectionConfig `yaml:"issuesSections"`
 	Defaults       Defaults              `yaml:"defaults"`
@@ -168,11 +184,17 @@ func (parser ConfigParser) getDefaultConfig() Config {
 				Open:  true,
 				Width: 50,
 			},
+			ReposLimit:             20,
 			PrsLimit:               20,
 			IssuesLimit:            20,
 			View:                   PRsView,
 			RefetchIntervalMinutes: 30,
 			Layout: LayoutConfig{
+				Repos: ReposLayoutConfig{
+					Owner: ColumnConfig{
+						Width: utils.IntPtr(15),
+					},
+				},
 				Prs: PrsLayoutConfig{
 					UpdatedAt: ColumnConfig{
 						Width: utils.IntPtr(lipgloss.Width("2mo ago")),
@@ -206,6 +228,7 @@ func (parser ConfigParser) getDefaultConfig() Config {
 				},
 			},
 		},
+		ReposSections: []ReposSectionConfig{},
 		PRSections: []PrsSectionConfig{
 			{
 				Title:   "My Pull Requests",
